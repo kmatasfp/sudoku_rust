@@ -1,5 +1,8 @@
 use std::collections::HashSet;
 
+const ROWS: usize = 9;
+const COLUMNS: usize = 9;
+
 fn main() {
     println!("Hello, world!");
 }
@@ -19,9 +22,9 @@ fn is_valid_solution(board: &[[u32; 9]; 9]) -> bool {
     }
 
     // check if columns are correct
-    for j in 0..9 {
+    for j in 0..COLUMNS {
         let mut column_set = HashSet::new();
-        for i in 0..9 {
+        for i in 0..ROWS {
             column_set.insert(board[i][j]);
         }
 
