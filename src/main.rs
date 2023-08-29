@@ -2,6 +2,8 @@ use std::collections::HashSet;
 
 const ROWS: usize = 9;
 const COLUMNS: usize = 9;
+const BOX_ROWS: usize = 3;
+const BOX_COLS: usize = 3;
 
 fn main() {
     println!("Hello, world!");
@@ -37,9 +39,95 @@ fn is_valid_solution(board: &[[u32; 9]; 9]) -> bool {
     true
 }
 
+fn solve(board: &[[u32; 9]; 9]) -> Result<[[u32; 9]; 9], &str> {
+    fn find_empty_location(board: &[[u32; 9]; 9]) -> Result<(usize, usize), &str> {
+        for row in 0..ROWS {
+            for col in 0..COLUMNS {
+                if board[row][col] == 0 {
+                    return Ok((row, col));
+                }
+            }
+        }
+
+        Err("Board is already filled")
+    }
+
+    fn is_location_safe(board: &[[u32; 9]; 9], row: usize, col: usize, num: u32) -> bool {
+        fn is_num_used_in_row(board: &[[u32; 9]; 9], row: usize, num: u32) -> bool {
+            for i in 0..COLUMNS {
+                if board[row][i] == num {
+                    return true;
+                }
+            }
+            false
+        }
+
+        fn is_num_used_in_col(board: &[[u32; 9]; 9], col: usize, num: u32) -> bool {
+            for i in 0..ROWS {
+                if board[i][col] == num {
+                    return true;
+                }
+            }
+            false
+        }
+
+        fn is_num_used_in_box(board: &[[u32; 9]; 9], row: usize, col: usize, num: u32) -> bool {
+            for i in 0..BOX_ROWS {
+                for j in 0..BOX_COLS {
+                    if board[i + row][j + col] == num {
+                        return true;
+                    }
+                }
+            }
+            false
+        }
+        !is_num_used_in_row(board, row, num)
+            && (!is_num_used_in_col(board, col, num)
+                && (!is_num_used_in_box(
+                    board,
+                    row - (row % BOX_ROWS),
+                    col - (col % BOX_COLS),
+                    num,
+                )))
+    }
+
+    fn go(board: &mut [[u32; 9]; 9]) -> bool {
+        let maybe_empty_location = find_empty_location(board);
+
+        match maybe_empty_location {
+            Ok((row, col)) => {
+                for num in 1..10u32 {
+                    if is_location_safe(board, row, col, num) {
+                        board[row][col] = num;
+
+                        if go(board) {
+                            return true;
+                        }
+
+                        board[row][col] = 0;
+                    }
+                }
+            }
+
+            Err(_) => return true, // already filled
+        }
+
+        false
+    }
+
+    let mut grid = board.clone();
+
+    if go(&mut grid) {
+        Ok(grid)
+    } else {
+        Err("No solution")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::is_valid_solution;
+    use crate::solve;
 
     #[test]
     fn is_valid_solution_should_return_false_in_case_rows_do_not_use_digits_1_to_9() {
@@ -120,5 +208,63 @@ mod tests {
         ];
 
         assert_eq!(is_valid_solution(&board), true)
+    }
+
+    #[test]
+    fn solve_should_return_the_input_board_if_board_is_already_filled() {
+        let board = [
+            [3, 1, 6, 5, 7, 8, 4, 9, 2],
+            [5, 2, 9, 1, 3, 4, 7, 6, 8],
+            [4, 8, 7, 6, 2, 9, 5, 3, 1],
+            [2, 6, 3, 4, 1, 5, 9, 8, 7],
+            [9, 7, 4, 8, 6, 3, 1, 2, 5],
+            [8, 5, 1, 7, 9, 2, 6, 4, 3],
+            [1, 3, 8, 9, 4, 7, 2, 5, 6],
+            [6, 9, 2, 3, 5, 1, 8, 7, 4],
+            [7, 4, 5, 2, 8, 6, 3, 1, 9],
+        ];
+
+        let expected_solution = [
+            [3, 1, 6, 5, 7, 8, 4, 9, 2],
+            [5, 2, 9, 1, 3, 4, 7, 6, 8],
+            [4, 8, 7, 6, 2, 9, 5, 3, 1],
+            [2, 6, 3, 4, 1, 5, 9, 8, 7],
+            [9, 7, 4, 8, 6, 3, 1, 2, 5],
+            [8, 5, 1, 7, 9, 2, 6, 4, 3],
+            [1, 3, 8, 9, 4, 7, 2, 5, 6],
+            [6, 9, 2, 3, 5, 1, 8, 7, 4],
+            [7, 4, 5, 2, 8, 6, 3, 1, 9],
+        ];
+
+        assert_eq!(solve(&board), Ok(expected_solution))
+    }
+
+    #[test]
+    fn solve_should_return_solution_if_input_board_is_solvable() {
+        let board = [
+            [3, 0, 6, 5, 0, 8, 4, 0, 0],
+            [5, 2, 0, 0, 0, 0, 0, 0, 0],
+            [0, 8, 7, 0, 0, 0, 0, 3, 1],
+            [0, 0, 3, 0, 1, 0, 0, 8, 0],
+            [9, 0, 0, 8, 6, 3, 0, 0, 5],
+            [0, 5, 0, 0, 9, 0, 6, 0, 0],
+            [1, 3, 0, 0, 0, 0, 2, 5, 0],
+            [0, 0, 0, 0, 0, 0, 0, 7, 4],
+            [0, 0, 5, 2, 0, 6, 3, 0, 0],
+        ];
+
+        let expected_solution = [
+            [3, 1, 6, 5, 7, 8, 4, 9, 2],
+            [5, 2, 9, 1, 3, 4, 7, 6, 8],
+            [4, 8, 7, 6, 2, 9, 5, 3, 1],
+            [2, 6, 3, 4, 1, 5, 9, 8, 7],
+            [9, 7, 4, 8, 6, 3, 1, 2, 5],
+            [8, 5, 1, 7, 9, 2, 6, 4, 3],
+            [1, 3, 8, 9, 4, 7, 2, 5, 6],
+            [6, 9, 2, 3, 5, 1, 8, 7, 4],
+            [7, 4, 5, 2, 8, 6, 3, 1, 9],
+        ];
+
+        assert_eq!(solve(&board), Ok(expected_solution))
     }
 }
