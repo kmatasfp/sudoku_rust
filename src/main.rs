@@ -1,133 +1,138 @@
-use std::collections::HashSet;
-
-const ROWS: usize = 9;
-const COLUMNS: usize = 9;
-const BOX_ROWS: usize = 3;
-const BOX_COLS: usize = 3;
+#![allow(dead_code)]
 
 fn main() {
     println!("Hello, world!");
 }
 
-fn is_valid_solution(board: &[[u32; 9]; 9]) -> bool {
-    // check if rows are correct
-    for row in board {
-        let mut row_set = HashSet::new();
-        for n in row {
-            row_set.insert(*n);
-        }
+mod sudoku {
 
-        let sum: u32 = row_set.iter().sum();
-        if sum != 45 || row_set.len() != 9 {
-            return false;
-        }
-    }
+    use std::collections::HashSet;
 
-    // check if columns are correct
-    for j in 0..COLUMNS {
-        let mut column_set = HashSet::new();
-        for i in 0..ROWS {
-            column_set.insert(board[i][j]);
-        }
+    const ROWS: usize = 9;
+    const COLUMNS: usize = 9;
+    const BOX_ROWS: usize = 3;
+    const BOX_COLS: usize = 3;
 
-        let sum: u32 = column_set.iter().sum();
-        if sum != 45 || column_set.len() != 9 {
-            return false;
-        }
-    }
+    pub fn is_valid_solution(board: &[[u32; 9]; 9]) -> bool {
+        // check if rows are correct
+        for row in board {
+            let mut row_set = HashSet::new();
+            for n in row {
+                row_set.insert(*n);
+            }
 
-    true
-}
-
-fn solve(board: &[[u32; 9]; 9]) -> Result<[[u32; 9]; 9], &str> {
-    fn find_empty_location(board: &[[u32; 9]; 9]) -> Result<(usize, usize), &str> {
-        for row in 0..ROWS {
-            for col in 0..COLUMNS {
-                if board[row][col] == 0 {
-                    return Ok((row, col));
-                }
+            let sum: u32 = row_set.iter().sum();
+            if sum != 45 || row_set.len() != 9 {
+                return false;
             }
         }
 
-        Err("Board is already filled")
-    }
-
-    fn is_location_safe(board: &[[u32; 9]; 9], row: usize, col: usize, num: u32) -> bool {
-        fn is_num_used_in_row(board: &[[u32; 9]; 9], row: usize, num: u32) -> bool {
-            for i in 0..COLUMNS {
-                if board[row][i] == num {
-                    return true;
-                }
-            }
-            false
-        }
-
-        fn is_num_used_in_col(board: &[[u32; 9]; 9], col: usize, num: u32) -> bool {
+        // check if columns are correct
+        for j in 0..COLUMNS {
+            let mut column_set = HashSet::new();
             for i in 0..ROWS {
-                if board[i][col] == num {
-                    return true;
-                }
+                column_set.insert(board[i][j]);
             }
-            false
+
+            let sum: u32 = column_set.iter().sum();
+            if sum != 45 || column_set.len() != 9 {
+                return false;
+            }
         }
 
-        fn is_num_used_in_box(board: &[[u32; 9]; 9], row: usize, col: usize, num: u32) -> bool {
-            for i in 0..BOX_ROWS {
-                for j in 0..BOX_COLS {
-                    if board[i + row][j + col] == num {
+        true
+    }
+
+    pub fn solve(board: &[[u32; 9]; 9]) -> Result<[[u32; 9]; 9], &str> {
+        fn find_empty_location(board: &[[u32; 9]; 9]) -> Result<(usize, usize), &str> {
+            for row in 0..ROWS {
+                for col in 0..COLUMNS {
+                    if board[row][col] == 0 {
+                        return Ok((row, col));
+                    }
+                }
+            }
+
+            Err("Board is already filled")
+        }
+
+        fn is_location_safe(board: &[[u32; 9]; 9], row: usize, col: usize, num: u32) -> bool {
+            fn is_num_used_in_row(board: &[[u32; 9]; 9], row: usize, num: u32) -> bool {
+                for i in 0..COLUMNS {
+                    if board[row][i] == num {
                         return true;
                     }
                 }
+                false
             }
-            false
-        }
-        !is_num_used_in_row(board, row, num)
-            && (!is_num_used_in_col(board, col, num)
-                && (!is_num_used_in_box(
-                    board,
-                    row - (row % BOX_ROWS),
-                    col - (col % BOX_COLS),
-                    num,
-                )))
-    }
 
-    fn go(board: &mut [[u32; 9]; 9]) -> bool {
-        let maybe_empty_location = find_empty_location(board);
-
-        match maybe_empty_location {
-            Ok((row, col)) => {
-                for num in 1..10u32 {
-                    if is_location_safe(board, row, col, num) {
-                        board[row][col] = num;
-
-                        if go(board) {
-                            return true;
-                        }
-
-                        board[row][col] = 0;
+            fn is_num_used_in_col(board: &[[u32; 9]; 9], col: usize, num: u32) -> bool {
+                for i in 0..ROWS {
+                    if board[i][col] == num {
+                        return true;
                     }
                 }
+                false
             }
 
-            Err(_) => return true, // already filled
+            fn is_num_used_in_box(board: &[[u32; 9]; 9], row: usize, col: usize, num: u32) -> bool {
+                for i in 0..BOX_ROWS {
+                    for j in 0..BOX_COLS {
+                        if board[i + row][j + col] == num {
+                            return true;
+                        }
+                    }
+                }
+                false
+            }
+            !is_num_used_in_row(board, row, num)
+                && (!is_num_used_in_col(board, col, num)
+                    && (!is_num_used_in_box(
+                        board,
+                        row - (row % BOX_ROWS),
+                        col - (col % BOX_COLS),
+                        num,
+                    )))
         }
 
-        false
-    }
+        fn go(board: &mut [[u32; 9]; 9]) -> bool {
+            let maybe_empty_location = find_empty_location(board);
 
-    let mut grid = board.clone();
+            match maybe_empty_location {
+                Ok((row, col)) => {
+                    for num in 1..10u32 {
+                        if is_location_safe(board, row, col, num) {
+                            board[row][col] = num;
 
-    if go(&mut grid) {
-        Ok(grid)
-    } else {
-        Err("No solution")
+                            if go(board) {
+                                return true;
+                            }
+
+                            board[row][col] = 0;
+                        }
+                    }
+                }
+
+                Err(_) => return true, // already filled
+            }
+
+            false
+        }
+
+        let mut grid = board.clone();
+
+        if go(&mut grid) {
+            Ok(grid)
+        } else {
+            Err("No solution")
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::is_valid_solution;
-    use crate::solve;
+    use crate::sudoku::is_valid_solution;
+    use crate::sudoku::solve;
 
     #[test]
     fn is_valid_solution_should_return_false_in_case_rows_do_not_use_digits_1_to_9() {
